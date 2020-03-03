@@ -2,7 +2,9 @@ package com.example.androidtcp;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.widget.Button;
 
 import java.io.BufferedWriter;
@@ -15,7 +17,10 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btn;
     Socket socket;
+    BufferedWriter writer;
+    boolean isUp = true;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -27,7 +32,12 @@ public class MainActivity extends AppCompatActivity {
 
                 ()->{
                     try {
-                        socket = new Socket("10.0.2.2",5001);
+                        socket = new Socket("10.0.2.2",5000);
+                        //escritor
+                        OutputStream os = socket.getOutputStream();
+                        OutputStreamWriter osw = new OutputStreamWriter(os);
+                        writer = new BufferedWriter(osw);
+
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -35,31 +45,46 @@ public class MainActivity extends AppCompatActivity {
 
         ).start();
 
-        btn.setOnClickListener(
-                (v)->{
-                    new Thread(
+        btn.setOnTouchListener(
+                (v, event)->{
 
-                            ()->{
+                    switch(event.getAction()){
 
-                                try {
-                                    OutputStream os = socket.getOutputStream();
-                                    OutputStreamWriter osw = new OutputStreamWriter(os);
-                                    BufferedWriter write = new BufferedWriter(osw);
-                                    write.write("hola desde adroid \n");
-                                    write.flush();
+                        case MotionEvent.ACTION_DOWN:
+                            isUp=false;
+                            break;
 
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
+                        case MotionEvent.ACTION_MOVE:
+                            btn.setText("MOVE");
+                            break;
 
+                        case MotionEvent.ACTION_UP:
+                            isUp=true;
+                            break;
+                    }
 
-                            }
-
-                    ).start();
-
+                    return true;
                 }
+
         );
 
+        new Thread(
+                ()->{
+                    while(true){
 
+                        while(isUp){}
+
+                        try {
+                            Thread.sleep(300);
+                            writer.write("UP\n");
+                            writer.flush();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+
+                    }
+                }
+        ).start();
     }
 }
